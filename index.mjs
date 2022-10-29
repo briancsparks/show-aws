@@ -83,17 +83,24 @@ function objKeyArray(obj, extra ={}) {
     const root   = key.substring(0, key.length-1);      /* key: 'Vpcs', root: 'Vpc' */
     let   idKey  = root + 'Id';                        /* idKey: 'VpcId' */
     let   map    = {};
-    let   values = [];
     let   level1Values = obj[key];
+    let   values = [...level1Values];
+
+    if (key === 'Reservations') {
+      values = [];
+    // } else {
+    //   values = [...values, ...level1Values];
+    }
+
     if (Array.isArray(level1Values)) {
       // const level1ValuesA = {...level1Values};
       // let map = {};
 
-      if (key === 'Reservations') {
-        values = [];
-      } else {
-        values = [...values, ...level1Values];
-      }
+      // if (key === 'Reservations') {
+      //   values = [];
+      // } else {
+      //   values = [...values, ...level1Values];
+      // }
 
       for (let value of level1Values) {
         value = {...value, ...extra};

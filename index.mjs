@@ -72,7 +72,7 @@ function autoCleanAwsJson(orig, json) {
   return result;
 }
 
-function objKeyArray(obj) {
+function objKeyArray(obj, extra ={}) {
   let result = [];
   for (let key in obj) {
     if (key[0] === '$') { continue; }
@@ -95,7 +95,8 @@ function objKeyArray(obj) {
         values = [...values, ...level1Values];
       }
 
-      for (const value of level1Values) {
+      for (let value of level1Values) {
+        value = {...value, ...extra};
         let itemKey = value[idKey];
         if (!itemKey) {
           idKey = key + 'Id';
@@ -122,7 +123,7 @@ function objKeyArray(obj) {
             // ReservationId: 'r-03ea9ff1313a5fd5b'
 
             const {OwnerId, RequesterId, ReservationId} = reservation;
-            const subItems = objKeyArray(reservation);
+            const subItems = objKeyArray(reservation, {OwnerId, RequesterId, ReservationId});
             for (let subItem of subItems) {
               const [subKey, subKeyId, oneInstancesMap, oneInstancesAwsValues] = subItem;     /* 'Instances', 'InstanceId', {'i-abc123':instanceData}, [Instances array] */
               if (subKey !== 'Instances') {

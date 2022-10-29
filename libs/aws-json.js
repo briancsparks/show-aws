@@ -69,6 +69,8 @@ function objKeyArray(obj, extra ={}) {
         let itemKey = value[idKey];
         itemKey = itemKey || value[key + 'Id'];
         itemKey = itemKey || value[idKeyFromType(key)];
+        itemKey = itemKey || value.Name;
+        itemKey = itemKey || value.Key;
 
         errIf(!itemKey, `Cannot determine key`, {root, idKey, item: value});
 

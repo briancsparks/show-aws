@@ -53,7 +53,6 @@ function autoCleanAwsJson(orig, json) {
     for (const item of subItems) {
       const [subKey, subKeyId, map, awsValues] = item;    /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
       data.awsOrig[subKey] = [data.awsOrig[subKey] || [], ...awsValues];
-      // data.data.Vpcs = {...(data.data.Vpcs || {}), ...map}
       data.data[subKey] = {...(data.data[subKey] || {}), ...map};
     }
   }
@@ -80,30 +79,22 @@ function objKeyArray(obj, extra ={}) {
     if (!Array.isArray(obj[key])) { continue; }
     if (obj[key].length === 0) { continue; }
 
+    let   level1Values = obj[key];
+
     const root   = key.substring(0, key.length-1);      /* key: 'Vpcs', root: 'Vpc' */
     let   idKey  = root + 'Id';                        /* idKey: 'VpcId' */
     let   map    = {};
-    let   level1Values = obj[key];
     let   values = [...level1Values];
 
     if (key === 'Reservations') {
       values = [];
-    // } else {
-    //   values = [...values, ...level1Values];
     }
 
     if (Array.isArray(level1Values)) {
-      // const level1ValuesA = {...level1Values};
-      // let map = {};
-
-      // if (key === 'Reservations') {
-      //   values = [];
-      // } else {
-      //   values = [...values, ...level1Values];
-      // }
-
       for (let value of level1Values) {
+
         value = {...value, ...extra};
+
         let itemKey = value[idKey];
         if (!itemKey) {
           idKey = key + 'Id';
@@ -119,39 +110,19 @@ function objKeyArray(obj, extra ={}) {
 
         // Special processing for instances -- value is the list of reservations: {Groups:[], Instances:[], ...}
         if (key === 'Reservations') {
-          // let   instancesMap = {};
-          let   instancesAwsValues = [];
 
-          // const reservations = objKeyArray(value);
           const reservation = {...value};
-          // for (const reservation of reservations) {
-            // OwnerId: '108906662218',
-            // RequesterId: '043234062703',
-            // ReservationId: 'r-03ea9ff1313a5fd5b'
-
-            const {OwnerId, RequesterId, ReservationId} = reservation;
-            const subItems = objKeyArray(reservation, {OwnerId, RequesterId, ReservationId});
-            for (let subItem of subItems) {
-              const [subKey, subKeyId, oneInstancesMap, oneInstancesAwsValues] = subItem;     /* 'Instances', 'InstanceId', {'i-abc123':instanceData}, [Instances array] */
-              if (subKey !== 'Instances') {
-                continue                                              /* subKey will also be 'Groups', 'OwnerId', 'RequesterId', etc */
-              }
-
-              map = {...map, ...oneInstancesMap};
-              values = [...values, ...oneInstancesAwsValues];
-
-              // const instanceId = subItem.InstanceId;
-              // subItem = {...subItem, OwnerId, RequesterId, ReservationId};
-              //
-              // data.awsOrig[subKey] = [data.awsOrig[subKey] || [], ...oneInstancesAwsValues];
-              // // data.data.Vpcs = {...(data.data.Vpcs || {}), ...map}
-              // data.data[subKey] = {...(data.data[subKey] || {}), ...oneInstancesMap};
+          const {OwnerId, RequesterId, ReservationId} = reservation;
+          const subItems = objKeyArray(reservation, {OwnerId, RequesterId, ReservationId});
+          for (let subItem of subItems) {
+            const [subKey, subKeyId, oneInstancesMap, oneInstancesAwsValues] = subItem;     /* 'Instances', 'InstanceId', {'i-abc123':instanceData}, [Instances array] */
+            if (subKey !== 'Instances') {
+              continue                                              /* subKey will also be 'Groups', 'OwnerId', 'RequesterId', etc */
             }
-          // }
 
-          // // TODO: map[itmKey] = ???
-          // map = {...map, ...instancesMap};
-          // values = [...values, ...instancesAwsValues];
+            map = {...map, ...oneInstancesMap};
+            values = [...values, ...oneInstancesAwsValues];
+          }
 
         } else {
           map[itemKey] = item;

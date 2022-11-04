@@ -79,6 +79,7 @@ function objKeyArray(obj, extra ={}) {
         itemKey = itemKey || value[idKey = idKeyFromType(key)];
         itemKey = itemKey || value[idKey = ('Name')];
         itemKey = itemKey || value[idKey = ('Key')];
+        itemKey = itemKey || value[idKey = (root)];
 
         errIf(!itemKey, `Cannot determine key`, {root, idKey, item: value});
 

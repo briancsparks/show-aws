@@ -1,5 +1,5 @@
 
-import {logJson, errIf, logit, merge} from './libs/utils.js';
+import {logJson, errIf, logit, merge, awaitObj} from './libs/utils.js';
 import {EC2}    from '@aws-sdk/client-ec2';
 import {S3}     from '@aws-sdk/client-s3';
 import {Route53}     from '@aws-sdk/client-route-53';
@@ -43,67 +43,18 @@ async function main() {
   const i = 10;
 }
 
+/** -------------------------------------------------------------------------------------------------------------------
+ *
+ * @returns {Promise<*&{data: {}, awsOrig: {}}>}
+ */
 async function getLambda() {
   let resolved, data;
 
   // Lambda
-  let   funcs   = lambda.listFunctions({});
+  let values0 = {};
+  values0.functions = lambda.listFunctions({});
 
-  // Merged ------ Round 1 -----
-  resolved = await Promise.all([funcs]);
-
-  [funcs] = resolved;
-
-  let aliasess = funcs.Functions.map((func) => {
-    // const FunctionName = func.FunctionName;
-    // aliasNames.push(FunctionName);
-    // aliasess.push(lambda.listAliases({FunctionName: func.FunctionName}));    // list-aliases
-    return lambda.listAliases({FunctionName: func.FunctionName});    // list-aliases
-  });
-  aliasess = await Promise.all(aliasess);
-
-  for (let i = 0; i < aliasess.length; ++i) {
-    // const FunctionName = aliasNames[i];
-    let x = autoCleanAwsJson({}, {aliases: aliasess[i]});
-
-    funcs.Functions[i] = {...funcs.Functions[i], ...x.data};
-  }
-
-  data = {funcs};
-  data = autoCleanAwsJson({}, data);
-
-  let aa=10;
-
-
-
-  // aliasess.forEach((aliases) => {
-  //   let x = autoCleanAwsJson({}, {aliases});
-  //   let jjj = 10;
-  // });
-  //
-  // // let aliasess      = [];
-  // // let aliasNames    = [];
-  // let aliasess_ = funcs.Functions.map((func) => {
-  //   const FunctionName = func.FunctionName;
-  //   aliasNames.push(FunctionName);
-  //   aliasess.push(lambda.listAliases({FunctionName: func.FunctionName}));    // list-aliases
-  //   return '';
-  // });
-  // resolved = await Promise.all(aliasess);
-  // aliasess = resolved;
-  // // data = autoCleanAwsJson(data, {aliasess});
-  //
-  // aliasess = aliasess.map((aliases) => {
-  //   return autoCleanAwsJson({}, {aliases});
-  // });
-  //
-  // let iii = 10;
-
-
-
-
-
-  // list-code-signing-configs
+  /*// list-code-signing-configs*/
   // list-event-source-mappings
   // list-function-event-invoke-configs
   // list-function-url-configs
@@ -114,15 +65,43 @@ async function getLambda() {
   // list-tags
   // list-versions-by-function
 
+  // Merged ------ Round 1 -----
+  values0.codeSigningConfigs = lambda.listCodeSigningConfigs({});
+  values0.eventSourceMappings = lambda.listEventSourceMappings({});
+  values0.layers = lambda.listLayers({});
+  values0 = await awaitObj(values0);
+
+  let functions   = values0.functions;
 
 
-  // // Merged ------ Round 2 -----
-  // resolved = await Promise.all([aliases]);
-  //
-  // [aliases] = resolved;
-  // data = {aliases};
-  //
-  // data = autoCleanAwsJson({}, data);
+  let fnNames = [];
+  for (let i = 0; i < 3 /*functions.Functions.length*/; i++) {
+    const fn = functions.Functions[i];
+    fnNames.push(fn.FunctionName);
+
+    let values1 = {};
+    values1.functionEventInvokeConfigs =  lambda.listFunctionEventInvokeConfigs({FunctionName: fn.FunctionName});
+    values1.functionUrlConfigs =  lambda.listFunctionUrlConfigs({FunctionName: fn.FunctionName});
+    values1.provisionedConcurrencyConfigs =  lambda.listProvisionedConcurrencyConfigs({FunctionName: fn.FunctionName});
+    values1.versionsByFunction =  lambda.listVersionsByFunction({FunctionName: fn.FunctionName});
+    values1.aliases = lambda.listAliases({FunctionName: fn.FunctionName});
+    values1 = await awaitObj(values1);
+
+    logJson({i, values1: Object.keys(values1)});
+
+    let x = autoCleanAwsJson({}, values1);
+    functions.Functions[i] = {...functions.Functions[i], ...x.data};
+  }
+
+  // data = {functions};
+  data = autoCleanAwsJson({}, values0);
+
+
+  // let values2 = {};
+  // values2.layerVersions = lambda.listLayerVersions({});
+  // values2.functionsByCodeSigningConfig = lambda.listFunctionsByCodeSigningConfig({});
+  // values2.tags = lambda.listTags({});
+  // values2 = awaitObj(values2);
 
   return data;
 }

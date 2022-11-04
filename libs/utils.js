@@ -20,7 +20,7 @@ const errIf = function (test, msg, obj) {
 };
 
 
-module.exports = { logit, logJson, errJson, errIf, merge };
+module.exports = { logit, logJson, errJson, errIf, merge, awaitObj };
 
 
 
@@ -43,6 +43,28 @@ function merge(...datasets) {
       }
     };
   }
+  return result;
+}
+
+/** -------------------------------------------------------------------------------------------------------------------
+ *
+ * @param obj
+ * @returns {Promise<{}>}
+ */
+async function awaitObj(obj) {
+  let keys = [], values = [];
+  const keys_ = Object.keys(obj);
+  for (let i = 0; i < keys_.length; i++) {
+    keys.push(keys_[i]);
+    values.push(obj[keys_[i]]);
+  }
+  values = await Promise.all(values);
+
+  let result = {};
+  for (let j = 0; j < keys.length; j++) {
+    result[keys[j]] = values[j];
+  }
+
   return result;
 }
 

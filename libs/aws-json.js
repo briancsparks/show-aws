@@ -43,13 +43,19 @@ function autoCleanAwsJson(orig, json) {
   return result;
 }
 
+/**
+ *
+ * @param obj
+ * @param extra
+ * @returns {*[]}
+ */
 function objKeyArray(obj, extra ={}) {
   let result = [];
   for (let key in obj) {
     if (key[0] === '$') { continue; }
     if (key === 'NextToken') { continue; }
     if (!Array.isArray(obj[key])) { continue; }
-    if (obj[key].length === 0) { continue; }
+    // if (obj[key].length === 0) { continue; }
 
     let   level1Values = obj[key];
 
@@ -68,6 +74,8 @@ function objKeyArray(obj, extra ={}) {
 
         let itemKey = value[idKey];
         itemKey = itemKey || value[key + 'Id'];
+        itemKey = itemKey || value[root + 'Name'];
+        itemKey = itemKey || value[key + 'Name'];
         itemKey = itemKey || value[idKeyFromType(key)];
         itemKey = itemKey || value.Name;
         itemKey = itemKey || value.Key;

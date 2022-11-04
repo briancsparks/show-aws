@@ -1,16 +1,18 @@
 
-import {logJson, errIf}  from './libs/utils.js';
+import {logJson, errIf, logit, merge} from './libs/utils.js';
 import {EC2}    from '@aws-sdk/client-ec2';
 import {S3}     from '@aws-sdk/client-s3';
 import {Route53}     from '@aws-sdk/client-route-53';
+import {Lambda}      from '@aws-sdk/client-lambda';
 import {autoCleanAwsJson, objKeyArray, idKeyFromType} from './libs/aws-json.js';
 
 const ec2 = new EC2({region: process.env.AWS_REGION || 'us-east-1'});
 const s3  = new S3({region: process.env.AWS_REGION || 'us-east-1'});
 const route53  = new Route53({region: process.env.AWS_REGION || 'us-east-1'});
+const lambda  = new Lambda({region: process.env.AWS_REGION || 'us-east-1'});
 
 // DataExchange
-// EC2, S3, VPC, ELB, Route53, Lambda, CloudWatch, Auto Scaling, CloudFormation, IAM, Cognito
+// EC2, S3, VPC, Route53, Lambda, ELB, CloudWatch, Auto Scaling, CloudFormation, IAM, Cognito
 // DynamoDB, Timestream
 // Amplify, AppSync, Step Functions, EventBridge, SNS, SES, SQS
 // API Gateway
@@ -30,13 +32,102 @@ async function main() {
   let resolved;
   let data = {};
 
-  const ec2data       = await getEC2();
-  const s3data        = {} /*await getS3()*/;
-  const route53Data   = await getRoute53();
+  // const ec2data       = await getEC2();
+  // const s3data        = {} /*await getS3()*/;
+  // const route53Data   = await getRoute53();
+  const lambdaData    = await getLambda();
 
-  data = merge(data, ec2data, route53Data /*, s3data*/);
+  data = merge(data, lambdaData /*, ec2data, route53Data, s3data*/);
+  // logit(data);
 
   const i = 10;
+}
+
+async function getLambda() {
+  let resolved, data;
+
+  // Lambda
+  let   funcs   = lambda.listFunctions({});
+
+  // Merged ------ Round 1 -----
+  resolved = await Promise.all([funcs]);
+
+  [funcs] = resolved;
+
+  let aliasess      = [];
+  let aliasNames    = [];
+
+  funcs.Functions.forEach((func) => {
+    const FunctionName = func.FunctionName;
+    aliasNames.push(FunctionName);
+    aliasess.push(lambda.listAliases({FunctionName: func.FunctionName}));    // list-aliases
+  });
+  aliasess = await Promise.all(aliasess);
+
+  for (let i = 0; i < aliasess.length; ++i) {
+    const FunctionName = aliasNames[i];
+    let x = autoCleanAwsJson({}, {aliases: aliasess[i]});
+
+    funcs.Functions[i] = {...funcs.Functions[i], ...x.data};
+    let jjj = 10;
+  }
+
+  data = {funcs};
+  data = autoCleanAwsJson({}, data);
+
+  let aa=10;
+
+
+
+  // aliasess.forEach((aliases) => {
+  //   let x = autoCleanAwsJson({}, {aliases});
+  //   let jjj = 10;
+  // });
+  //
+  // // let aliasess      = [];
+  // // let aliasNames    = [];
+  // let aliasess_ = funcs.Functions.map((func) => {
+  //   const FunctionName = func.FunctionName;
+  //   aliasNames.push(FunctionName);
+  //   aliasess.push(lambda.listAliases({FunctionName: func.FunctionName}));    // list-aliases
+  //   return '';
+  // });
+  // resolved = await Promise.all(aliasess);
+  // aliasess = resolved;
+  // // data = autoCleanAwsJson(data, {aliasess});
+  //
+  // aliasess = aliasess.map((aliases) => {
+  //   return autoCleanAwsJson({}, {aliases});
+  // });
+  //
+  // let iii = 10;
+
+
+
+
+
+  // list-code-signing-configs
+  // list-event-source-mappings
+  // list-function-event-invoke-configs
+  // list-function-url-configs
+  // list-functions-by-code-signing-config
+  // list-layer-versions
+  // list-layers
+  // list-provisioned-concurrency-configs
+  // list-tags
+  // list-versions-by-function
+
+
+
+  // // Merged ------ Round 2 -----
+  // resolved = await Promise.all([aliases]);
+  //
+  // [aliases] = resolved;
+  // data = {aliases};
+  //
+  // data = autoCleanAwsJson({}, data);
+
+  return data;
 }
 
 /** -------------------------------------------------------------------------------------------------------------------
@@ -46,7 +137,7 @@ async function main() {
 async function getEC2() {
   let resolved, data;
 
-  // VPC and EC2
+  // VPC
   let   vpcs = ec2.describeVpcs({});
   let   subnets = ec2.describeSubnets({});
   let   routeTables = ec2.describeRouteTables({});
@@ -59,10 +150,12 @@ async function getEC2() {
   let   acls = ec2.describeNetworkAcls({});
   let   sgs = ec2.describeSecurityGroups({});
 
+  // EC2
   let   instances = ec2.describeInstances({});
   let   keys = ec2.describeKeyPairs({});
   let   volumes = ec2.describeVolumes({});
 
+  // Merged
   resolved = await Promise.all([vpcs, subnets, routeTables, gw, dhcpOptions, elasticIps, endpoints, natGateways, peering, acls, sgs, instances, keys, volumes]);
 
   [vpcs, subnets, routeTables, gw, dhcpOptions, elasticIps, endpoints, natGateways, peering, acls, sgs, instances, keys, volumes] = resolved;
@@ -138,28 +231,6 @@ async function getRoute53() {
   });
 
   return data;
-}
-
-/** -------------------------------------------------------------------------------------------------------------------
- *
- * @param datasets
- * @returns {{}}
- */
-function merge(...datasets) {
-  let result = {};
-  for (const ds of datasets) {
-    result = {...result,
-      awsOrig: {
-        ...(result.awsOrig || {}),
-        ...ds.awsOrig,
-      },
-      data: {
-        ...(result.data || {}),
-        ...ds.data,
-      }
-    };
-  }
-  return result;
 }
 
 

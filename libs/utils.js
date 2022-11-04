@@ -19,7 +19,30 @@ const errIf = function (test, msg, obj) {
   }
 };
 
-module.exports = { logit, logJson, errJson, errIf };
+
+module.exports = { logit, logJson, errJson, errIf, merge };
 
 
+
+/** -------------------------------------------------------------------------------------------------------------------
+ *
+ * @param datasets
+ * @returns {{}}
+ */
+function merge(...datasets) {
+  let result = {};
+  for (const ds of datasets) {
+    result = {...result,
+      awsOrig: {
+        ...(result.awsOrig || {}),
+        ...ds.awsOrig,
+      },
+      data: {
+        ...(result.data || {}),
+        ...ds.data,
+      }
+    };
+  }
+  return result;
+}
 

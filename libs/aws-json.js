@@ -24,8 +24,8 @@ function autoCleanAwsJson(orig, json) {
     const subItems = objKeyArray(obj);
     for (const item of subItems) {
       const [subKey, subKeyId, map, awsValues] = item;    /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
-      data.awsOrig[subKey] = [data.awsOrig[subKey] || [], ...awsValues];
-      data.data[subKey] = {...(data.data[subKey] || {}), ...map};
+      data.awsOrig[subKey]  = [...(data.awsOrig[subKey] || []), ...awsValues];
+      data.data[subKey]     = {...(data.data[subKey] || {}), ...map};
     }
   }
 
@@ -59,8 +59,8 @@ function objKeyArray(obj, extra ={}) {
 
     let   level1Values = obj[key];
 
-    const root   = key.substring(0, key.length-1);      /* key: 'Vpcs', root: 'Vpc' */
-    let   idKey  = root + 'Id';                        /* idKey: 'VpcId' */
+    const root   = key.substring(0, key.length-1);            /* key: 'Vpcs', root: 'Vpc' */
+    let   idKey  = idKeyFromType(key, root + 'Id');      /* idKey: 'VpcId' */
     let   map    = {};
     let   values = [...level1Values];
 
@@ -73,12 +73,12 @@ function objKeyArray(obj, extra ={}) {
         value = {...value, ...extra};
 
         let itemKey = value[idKey];
-        itemKey = itemKey || value[key + 'Id'];
-        itemKey = itemKey || value[root + 'Name'];
-        itemKey = itemKey || value[key + 'Name'];
-        itemKey = itemKey || value[idKeyFromType(key)];
-        itemKey = itemKey || value.Name;
-        itemKey = itemKey || value.Key;
+        itemKey = itemKey || value[idKey = (key + 'Id')];
+        itemKey = itemKey || value[idKey = (root + 'Name')];
+        itemKey = itemKey || value[idKey = (key + 'Name')];
+        itemKey = itemKey || value[idKey = idKeyFromType(key)];
+        itemKey = itemKey || value[idKey = ('Name')];
+        itemKey = itemKey || value[idKey = ('Key')];
 
         errIf(!itemKey, `Cannot determine key`, {root, idKey, item: value});
 
@@ -115,7 +115,7 @@ function objKeyArray(obj, extra ={}) {
   return result;
 }
 
-function idKeyFromType(key) {
+function idKeyFromType(key, key2 =null) {
   if (key === 'Addresses') {
     return 'AllocationId';
   }
@@ -124,6 +124,10 @@ function idKeyFromType(key) {
     return 'GroupId';
   }
 
-  return 'ERROR_UNKKEYId';
+  if (key === 'Aliases') {
+    return 'Name';
+  }
+
+  return key2 || 'ERROR_UNKKEYId';
 }
 

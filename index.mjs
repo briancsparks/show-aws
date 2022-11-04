@@ -54,22 +54,19 @@ async function getLambda() {
 
   [funcs] = resolved;
 
-  let aliasess      = [];
-  let aliasNames    = [];
-
-  funcs.Functions.forEach((func) => {
-    const FunctionName = func.FunctionName;
-    aliasNames.push(FunctionName);
-    aliasess.push(lambda.listAliases({FunctionName: func.FunctionName}));    // list-aliases
+  let aliasess = funcs.Functions.map((func) => {
+    // const FunctionName = func.FunctionName;
+    // aliasNames.push(FunctionName);
+    // aliasess.push(lambda.listAliases({FunctionName: func.FunctionName}));    // list-aliases
+    return lambda.listAliases({FunctionName: func.FunctionName});    // list-aliases
   });
   aliasess = await Promise.all(aliasess);
 
   for (let i = 0; i < aliasess.length; ++i) {
-    const FunctionName = aliasNames[i];
+    // const FunctionName = aliasNames[i];
     let x = autoCleanAwsJson({}, {aliases: aliasess[i]});
 
     funcs.Functions[i] = {...funcs.Functions[i], ...x.data};
-    let jjj = 10;
   }
 
   data = {funcs};

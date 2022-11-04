@@ -129,6 +129,10 @@ function idKeyFromType(key, key2 =null) {
     return 'Name';
   }
 
+  if (key === 'LayerVersions') {
+    return 'Version';
+  }
+
   return key2 || 'ERROR_UNKKEYId';
 }
 

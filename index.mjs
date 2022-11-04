@@ -38,7 +38,7 @@ async function main() {
   const lambdaData    = await getLambda();
 
   data = merge(data, lambdaData /*, ec2data, route53Data, s3data*/);
-  // logit(data);
+  logit(data);
 
   const i = 10;
 }
@@ -53,27 +53,14 @@ async function getLambda() {
   // Lambda
   let values0 = {};
   values0.functions = lambda.listFunctions({});
-
-  /*// list-code-signing-configs*/
-  // list-event-source-mappings
-  // list-function-event-invoke-configs
-  // list-function-url-configs
-  // list-functions-by-code-signing-config
-  // list-layer-versions
-  // list-layers
-  // list-provisioned-concurrency-configs
-  // list-tags
-  // list-versions-by-function
-
-  // Merged ------ Round 1 -----
   values0.codeSigningConfigs = lambda.listCodeSigningConfigs({});
   values0.eventSourceMappings = lambda.listEventSourceMappings({});
   values0.layers = lambda.listLayers({});
+
   values0 = await awaitObj(values0);
 
+
   let functions   = values0.functions;
-
-
   let fnNames = [];
   for (let i = 0; i < 3 /*functions.Functions.length*/; i++) {
     const fn = functions.Functions[i];
@@ -87,21 +74,33 @@ async function getLambda() {
     values1.aliases = lambda.listAliases({FunctionName: fn.FunctionName});
     values1 = await awaitObj(values1);
 
-    logJson({i, values1: Object.keys(values1)});
+    // logJson({i, values1: Object.keys(values1)});
 
     let x = autoCleanAwsJson({}, values1);
     functions.Functions[i] = {...functions.Functions[i], ...x.data};
   }
 
-  // data = {functions};
+  for (let i = 0; i < values0.layers.Layers.length; i++) {
+    const layer = values0.layers.Layers[i];
+    const layerVersions = await lambda.listLayerVersions({LayerName: layer.LayerName});
+
+    // logJson({i, values2: Object.keys({layerVersions})});
+
+    let x = autoCleanAwsJson({}, {layerVersions});
+    let LayerVersions = {};
+    for (const key in x.data.LayerVersions) {
+      LayerVersions[`${layer.LayerName}:${key}`] = x.data.LayerVersions[key];
+    }
+
+    values0.layers.Layers[i] = {...values0.layers.Layers[i], ...{LayerVersions}};
+  }
+
+  // let values3 = {};
+  // values3.functionsByCodeSigningConfig = lambda.listFunctionsByCodeSigningConfig({});
+  // values3.tags = lambda.listTags({});
+  // values3 = awaitObj(values3);
+
   data = autoCleanAwsJson({}, values0);
-
-
-  // let values2 = {};
-  // values2.layerVersions = lambda.listLayerVersions({});
-  // values2.functionsByCodeSigningConfig = lambda.listFunctionsByCodeSigningConfig({});
-  // values2.tags = lambda.listTags({});
-  // values2 = awaitObj(values2);
 
   return data;
 }

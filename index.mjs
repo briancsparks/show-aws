@@ -32,10 +32,10 @@ async function main() {
   let resolved;
   let data = {};
 
-  // const ec2data       = await getEC2();
+  const ec2data       = await getEC2();
   // const s3data        = {} /*await getS3()*/;
   // const route53Data   = await getRoute53();
-  const lambdaData    = await getLambda();
+  // const lambdaData    = await getLambda();
 
   data = merge(data, lambdaData /*, ec2data, route53Data, s3data*/);
   logit(data);
@@ -76,7 +76,7 @@ async function getLambda() {
 
     // logJson({i, values1: Object.keys(values1)});
 
-    let x = autoCleanAwsJson({}, values1);
+    let x = autoCleanAwsJson(values1);
     functions.Functions[i] = {...functions.Functions[i], ...x.data};
   }
 
@@ -86,7 +86,7 @@ async function getLambda() {
 
     // logJson({i, values2: Object.keys({layerVersions})});
 
-    let x = autoCleanAwsJson({}, {layerVersions});
+    let x = autoCleanAwsJson({layerVersions});
     let LayerVersions = {};
     for (const key in x.data.LayerVersions) {
       LayerVersions[`${layer.LayerName}:${key}`] = x.data.LayerVersions[key];
@@ -100,7 +100,7 @@ async function getLambda() {
   // values3.tags = lambda.listTags({});
   // values3 = awaitObj(values3);
 
-  data = autoCleanAwsJson({}, values0);
+  data = autoCleanAwsJson(values0);
 
   return data;
 }
@@ -136,7 +136,7 @@ async function getEC2() {
   [vpcs, subnets, routeTables, gw, dhcpOptions, elasticIps, endpoints, natGateways, peering, acls, sgs, instances, keys, volumes] = resolved;
   data = {vpcs, subnets, routeTables, gw, dhcpOptions, elasticIps, endpoints, natGateways, peering, acls, sgs, instances, keys, volumes};
 
-  data = autoCleanAwsJson({}, data);
+  data = autoCleanAwsJson(data);
   // logJson(data);
 
   return data;
@@ -157,7 +157,7 @@ async function getS3() {
   resolved      = await Promise.all([buckets /*, objects2, objects*/]);
   [buckets /*, objects2, objects*/] = resolved;
 
-  data = autoCleanAwsJson({}, {buckets /*, objects2, objects*/});
+  data = autoCleanAwsJson({buckets /*, objects2, objects*/});
 
   return data;
 }
@@ -179,7 +179,7 @@ async function getRoute53() {
   resolved      = await Promise.all([hostedZones /*, cidrBlocks*/ /*, geoLocations*/ /*, hostedZonesByVpc*/]);
   [hostedZones /*, cidrBlocks*/ /*, geoLocations*/ /*, hostedZonesByVpc*/] = resolved;
 
-  data = autoCleanAwsJson({}, {hostedZones /*, cidrBlocks*/ /*, geoLocations*/ /*, hostedZonesByVpc*/});
+  data = autoCleanAwsJson({hostedZones /*, cidrBlocks*/ /*, geoLocations*/ /*, hostedZonesByVpc*/});
 
   // Resource Records (aka DNS records) - must request for a specific domain
   let rrPromises = [];
@@ -193,7 +193,7 @@ async function getRoute53() {
   let rrSetAws  = [];
   let rrSetData = {};
   for (const awsRrSet of resolved) {
-    const rrSet = autoCleanAwsJson({}, {awsRrSet});
+    const rrSet = autoCleanAwsJson({awsRrSet});
 
     rrSetAws = [...rrSetAws, ...rrSet.awsOrig.ResourceRecordSets];
     rrSetData = {...rrSetData, ...rrSet.data.ResourceRecordSets};

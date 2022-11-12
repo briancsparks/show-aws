@@ -12,12 +12,11 @@ module.exports = {
 
 
 
-/**
+/** -------------------------------------------------------------------------------------------------------------------
  *
- * @param orig - already-existing object to hold results
  * @param json - new AWS object of objects
  */
-function autoCleanAwsJson(orig, json) {
+function autoCleanAwsJson(json) {
   let data = {awsOrig:{}, data:{}};
   for (const key in json) {
     const obj = json[key];
@@ -29,21 +28,21 @@ function autoCleanAwsJson(orig, json) {
     }
   }
 
-  const result = {...orig,
-    awsOrig: {
-      ...(orig.awsOrig || {}),
-      ...data.awsOrig,
-    },
-    data: {
-      ...(orig.data || {}),
-      ...data.data,
-    }
-  };
+  // const result = {...orig,
+  //   awsOrig: {
+  //     ...(orig.awsOrig || {}),
+  //     ...data.awsOrig,
+  //   },
+  //   data: {
+  //     ...(orig.data || {}),
+  //     ...data.data,
+  //   }
+  // };
 
-  return result;
+  return data;
 }
 
-/**
+/** -------------------------------------------------------------------------------------------------------------------
  *
  * @param obj
  * @param extra
@@ -116,6 +115,12 @@ function objKeyArray(obj, extra ={}) {
   return result;
 }
 
+/** -------------------------------------------------------------------------------------------------------------------
+ *
+ * @param key
+ * @param key2
+ * @returns {string}
+ */
 function idKeyFromType(key, key2 =null) {
   if (key === 'Addresses') {
     return 'AllocationId';

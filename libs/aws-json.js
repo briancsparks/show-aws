@@ -6,7 +6,6 @@ const {logJson, errIf} = require('./utils');
 
 module.exports = {
   autoCleanAwsJson,
-  objKeyArray,
   idKeyFromType,
 };
 
@@ -20,7 +19,8 @@ function autoCleanAwsJson(json) {
   let data = {awsOrig:{}, data:{}};
   for (const key in json) {
     const obj = json[key];
-    const subItems = objKeyArray(obj);
+
+    const subItems = fixAwsJson(obj);
     for (const item of subItems) {
       const [subKey, map, awsValues] = item;    /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
       data.awsOrig[subKey]  = [...(data.awsOrig[subKey] || []), ...awsValues];
@@ -33,21 +33,63 @@ function autoCleanAwsJson(json) {
 
 /** -------------------------------------------------------------------------------------------------------------------
  *
- * @param obj
+ * @param awsJson
+ */
+function fixAwsJson(awsJson) {
+  return rekeyAwsJson(awsJson);
+}
+
+/** -------------------------------------------------------------------------------------------------------------------
+ *
+ * @param Tags
+ */
+function straightenTags(Tags) {
+  let tags = {};
+
+  for (let {Key, Value=null} of Tags) {
+    Value = Value || Key;
+    tags = {...tags, [Key]: Value};
+  }
+
+  return tags;
+}
+
+/** -------------------------------------------------------------------------------------------------------------------
+ *
+ * @param awsJsonIn
+ */
+function fixAwsTags(awsJsonIn) {
+  if (!Array.isArray(awsJsonIn)) { return awsJsonIn; }
+
+  let awsJson = [];
+  for (let obj of awsJsonIn) {
+    const tags = straightenTags(obj.Tags || []);
+    awsJson.push({...obj, tags});
+  }
+
+  return awsJson;
+}
+
+/** -------------------------------------------------------------------------------------------------------------------
+ *
+ * @param awsJson
  * @param extra
  * @returns {*[]}
  */
-function objKeyArray(obj, extra ={}) {
+function rekeyAwsJson(awsJson, extra ={}) {
+  // let awsJson = fixAwsTags(awsJsonIn);
+
   let result = [];
-  for (let key in obj) {
+  for (let key in awsJson) {
     if (key === 'Reservations') {
-      return objKeyArrayReservations(obj);
+      return rekeyAwsJsonReservations(awsJson);
     }
 
-    if (key[0] === '$' || key === 'NextToken' || !Array.isArray(obj[key]))    { continue; }
+    if (key[0] === '$' || key === 'NextToken' || !Array.isArray(awsJson[key]))    { continue; }
 
-    let   values  = obj[key];
     let   map     = {};
+    let   values  = awsJson[key];
+    values = fixAwsTags(values);
 
     if (Array.isArray(values)) {
       for (let value of values) {
@@ -68,17 +110,18 @@ function objKeyArray(obj, extra ={}) {
 
 /** -------------------------------------------------------------------------------------------------------------------
  *
- * @param obj
+ * @param awsJson
  * @returns {*[]}
  */
-function objKeyArrayReservations(obj) {
+function rekeyAwsJsonReservations(awsJson) {
   let result = [];
-  for (let key in obj) {
-    if (key[0] === '$' || key === 'NextToken' || !Array.isArray(obj[key]))    { continue; }
+  for (let key in awsJson) {
+    if (key[0] === '$' || key === 'NextToken' || !Array.isArray(awsJson[key]))    { continue; }
 
-    let   level1Values  = obj[key];
     let   map           = {};
     let   values        = [];
+    let   level1Values  = awsJson[key];
+    // level1Values = fixAwsTags(level1Values);
 
     if (Array.isArray(level1Values)) {
       for (let value of level1Values) {
@@ -90,8 +133,8 @@ function objKeyArrayReservations(obj) {
         if (key === 'Reservations') {
 
           const reservation = {...value};
-          const {OwnerId, RequesterId, ReservationId} = reservation;
-          const subItems = objKeyArray(reservation, {OwnerId, RequesterId, ReservationId});
+          const {OwnerId, RequesterId, ReservationId, ...reservationRest} = reservation;
+          const subItems = rekeyAwsJson(reservationRest, {OwnerId, RequesterId, ReservationId});
           for (let subItem of subItems) {
             const [subKey, oneInstancesMap, oneInstancesAwsValues] = subItem;     /* 'Instances', 'InstanceId', {'i-abc123':instanceData}, [Instances array] */
             if (subKey !== 'Instances') {

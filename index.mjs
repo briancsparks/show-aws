@@ -4,7 +4,7 @@ import {EC2}    from '@aws-sdk/client-ec2';
 import {S3}     from '@aws-sdk/client-s3';
 import {Route53}     from '@aws-sdk/client-route-53';
 import {Lambda}      from '@aws-sdk/client-lambda';
-import {autoCleanAwsJson, objKeyArray, idKeyFromType} from './libs/aws-json.js';
+import {autoCleanAwsJson, idKeyFromType} from './libs/aws-json.js';
 
 const ec2 = new EC2({region: process.env.AWS_REGION || 'us-east-1'});
 const s3  = new S3({region: process.env.AWS_REGION || 'us-east-1'});

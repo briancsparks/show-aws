@@ -64,15 +64,16 @@ function objKeyArray(obj, extra ={}) {
       for (let value of level1Values) {
         value = {...value, ...extra};
 
-        let itemKey = value[idKey];
-        itemKey = itemKey || value[idKey = (key + 'Id')];
-        itemKey = itemKey || value[idKey = (root + 'Name')];
-        itemKey = itemKey || value[idKey = (key + 'Name')];
-        itemKey = itemKey || value[idKey = idKeyFromType(key)];
-        itemKey = itemKey || value[idKey = ('Name')];
-        itemKey = itemKey || value[idKey = ('Key')];
-        itemKey = itemKey || value[idKey = (root)];
+        // let itemKey = value[idKey];
+        // itemKey = itemKey || value[idKey = (key + 'Id')];
+        // itemKey = itemKey || value[idKey = (root + 'Name')];
+        // itemKey = itemKey || value[idKey = (key + 'Name')];
+        // itemKey = itemKey || value[idKey = idKeyFromType(key)];
+        // itemKey = itemKey || value[idKey = ('Name')];
+        // itemKey = itemKey || value[idKey = ('Key')];
+        // itemKey = itemKey || value[idKey = (root)];
 
+        let itemKey = getItemKey(value, key, root, idKey);
         errIf(!itemKey, `Cannot determine key`, {root, idKey, item: value});
 
         // // Special processing for instances -- value is the list of reservations: {Groups:[], Instances:[], ...}
@@ -127,24 +128,24 @@ function objKeyArrayReservations(obj, extra ={}) {
     const root   = key.substring(0, key.length-1);            /* key: 'Vpcs', root: 'Vpc' */
     let   idKey  = idKeyFromType(key, root + 'Id');      /* idKey: 'VpcId' */
     let   map    = {};
-    let   values = [...level1Values];
+    let   values = [];
 
-    // if (key === 'Reservations') {
-      values = [];
-    // }
+    // values = [];
 
     if (Array.isArray(level1Values)) {
       for (let value of level1Values) {
         value = {...value, ...extra};
 
-        let itemKey = value[idKey];
-        itemKey = itemKey || value[idKey = (key + 'Id')];
-        itemKey = itemKey || value[idKey = (root + 'Name')];
-        itemKey = itemKey || value[idKey = (key + 'Name')];
-        itemKey = itemKey || value[idKey = idKeyFromType(key)];
-        itemKey = itemKey || value[idKey = ('Name')];
-        itemKey = itemKey || value[idKey = ('Key')];
-        itemKey = itemKey || value[idKey = (root)];
+        // let itemKey = value[idKey];
+        // itemKey = itemKey || value[idKey = (key + 'Id')];
+        // itemKey = itemKey || value[idKey = (root + 'Name')];
+        // itemKey = itemKey || value[idKey = (key + 'Name')];
+        // itemKey = itemKey || value[idKey = idKeyFromType(key)];
+        // itemKey = itemKey || value[idKey = ('Name')];
+        // itemKey = itemKey || value[idKey = ('Key')];
+        // itemKey = itemKey || value[idKey = (root)];
+
+        let itemKey = getItemKey(value, key, root, idKey);
 
         errIf(!itemKey, `Cannot determine key`, {root, idKey, item: value});
 
@@ -164,21 +165,30 @@ function objKeyArrayReservations(obj, extra ={}) {
             values = [...values, ...oneInstancesAwsValues];
           }
 
-        // } else {
-        //   map[itemKey] = {...value};
         }
       }
 
-      // if (key === 'Reservations') {
-        key = 'Instances';
-        idKey = 'InstanceId';
-      // }
+      key = 'Instances';
+      idKey = 'InstanceId';
 
       result.push([key, idKey, map, values]);     /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
     }
   }
 
   return result;
+}
+
+function getItemKey(value, key, root, idKey) {
+  let itemKey = value[idKey];
+  itemKey = itemKey || value[idKey = (key + 'Id')];
+  itemKey = itemKey || value[idKey = (root + 'Name')];
+  itemKey = itemKey || value[idKey = (key + 'Name')];
+  itemKey = itemKey || value[idKey = idKeyFromType(key)];
+  itemKey = itemKey || value[idKey = ('Name')];
+  itemKey = itemKey || value[idKey = ('Key')];
+  itemKey = itemKey || value[idKey = (root)];
+
+  return itemKey;
 }
 
 /** -------------------------------------------------------------------------------------------------------------------

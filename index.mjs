@@ -37,7 +37,7 @@ async function main() {
   // const route53Data   = await getRoute53();
   // const lambdaData    = await getLambda();
 
-  data = merge(data, lambdaData /*, ec2data, route53Data, s3data*/);
+  data = merge(data, ec2data, /*lambdaData, route53Data, s3data*/);
   logit(data);
 
   const i = 10;

@@ -22,7 +22,7 @@ function autoCleanAwsJson(json) {
     const obj = json[key];
     const subItems = objKeyArray(obj);
     for (const item of subItems) {
-      const [subKey, subKeyId, map, awsValues] = item;    /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
+      const [subKey, map, awsValues] = item;    /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
       data.awsOrig[subKey]  = [...(data.awsOrig[subKey] || []), ...awsValues];
       data.data[subKey]     = {...(data.data[subKey] || {}), ...map};
     }
@@ -41,29 +41,25 @@ function objKeyArray(obj, extra ={}) {
   let result = [];
   for (let key in obj) {
     if (key === 'Reservations') {
-      return objKeyArrayReservations(obj, extra);
+      return objKeyArrayReservations(obj);
     }
 
     if (key[0] === '$' || key === 'NextToken' || !Array.isArray(obj[key]))    { continue; }
 
-    let   level1Values  = obj[key];
-    let   map           = {};
-    let   values        = [...level1Values];
+    let   values  = obj[key];
+    let   map     = {};
 
-    const root   = key.substring(0, key.length-1);            /* key: 'Vpcs', root: 'Vpc' */
-    let   idKey  = idKeyFromType(key, root + 'Id');      /* idKey: 'VpcId' */
-
-    if (Array.isArray(level1Values)) {
-      for (let value of level1Values) {
+    if (Array.isArray(values)) {
+      for (let value of values) {
         value = {...value, ...extra};
 
-        let itemKey = getItemKey(value, key, root, idKey);
-        errIf(!itemKey, `Cannot determine key`, {root, idKey, item: value});
+        let   itemKey = getItemKey(value, key);
+        errIf(!itemKey, `Cannot determine itemKey`, {key, item: value});
 
         map[itemKey] = {...value};
       }
 
-      result.push([key, idKey, map, values]);     /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
+      result.push([key, map, values]);     /* 'Vpcs', {'vpc-abc123':vpcData}, [Vpcs array] */
     }
   }
 
@@ -73,10 +69,9 @@ function objKeyArray(obj, extra ={}) {
 /** -------------------------------------------------------------------------------------------------------------------
  *
  * @param obj
- * @param extra
  * @returns {*[]}
  */
-function objKeyArrayReservations(obj, extra ={}) {
+function objKeyArrayReservations(obj) {
   let result = [];
   for (let key in obj) {
     if (key[0] === '$' || key === 'NextToken' || !Array.isArray(obj[key]))    { continue; }
@@ -85,15 +80,11 @@ function objKeyArrayReservations(obj, extra ={}) {
     let   map           = {};
     let   values        = [];
 
-    const root   = key.substring(0, key.length-1);            /* key: 'Vpcs', root: 'Vpc' */
-    let   idKey  = idKeyFromType(key, root + 'Id');      /* idKey: 'VpcId' */
-
     if (Array.isArray(level1Values)) {
       for (let value of level1Values) {
-        value = {...value, ...extra};
 
-        let itemKey = getItemKey(value, key, root, idKey);
-        errIf(!itemKey, `Cannot determine key`, {root, idKey, item: value});
+        let itemKey = getItemKey(value, key);
+        errIf(!itemKey, `Cannot determine itemKey`, {key, item: value});
 
         // Special processing for instances -- value is the list of reservations: {Groups:[], Instances:[], ...}
         if (key === 'Reservations') {
@@ -102,7 +93,7 @@ function objKeyArrayReservations(obj, extra ={}) {
           const {OwnerId, RequesterId, ReservationId} = reservation;
           const subItems = objKeyArray(reservation, {OwnerId, RequesterId, ReservationId});
           for (let subItem of subItems) {
-            const [subKey, subKeyId, oneInstancesMap, oneInstancesAwsValues] = subItem;     /* 'Instances', 'InstanceId', {'i-abc123':instanceData}, [Instances array] */
+            const [subKey, oneInstancesMap, oneInstancesAwsValues] = subItem;     /* 'Instances', 'InstanceId', {'i-abc123':instanceData}, [Instances array] */
             if (subKey !== 'Instances') {
               continue                                              /* subKey will also be 'Groups', 'OwnerId', 'RequesterId', etc */
             }
@@ -115,9 +106,9 @@ function objKeyArrayReservations(obj, extra ={}) {
       }
 
       key = 'Instances';
-      idKey = 'InstanceId';
+      // idKey = 'InstanceId';
 
-      result.push([key, idKey, map, values]);     /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
+      result.push([key, map, values]);     /* 'Vpcs', 'VpcId', {'vpc-abc123':vpcData}, [Vpcs array] */
     }
   }
 
@@ -132,7 +123,9 @@ function objKeyArrayReservations(obj, extra ={}) {
  * @param idKey
  * @returns {*}
  */
-function getItemKey(value, key, root, idKey) {
+function getItemKey(value, key) {
+  const root    = key.substring(0, key.length-1);            /* key: 'Vpcs', root: 'Vpc' */
+  let   idKey   = idKeyFromType(key, root + 'Id');      /* idKey: 'VpcId' */
   let itemKey = value[idKey];
   itemKey = itemKey || value[idKey = (key + 'Id')];
   itemKey = itemKey || value[idKey = (root + 'Name')];

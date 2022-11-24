@@ -38,7 +38,8 @@ async function main() {
   // const lambdaData    = await getLambda();
 
   data = merge(data, ec2data, /*lambdaData, route53Data, s3data*/);
-  logit(data);
+  // logit(data);
+  console.log(JSON.stringify(data, null, 2));
 
   const i = 10;
 }
